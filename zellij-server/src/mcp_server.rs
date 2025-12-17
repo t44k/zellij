@@ -435,7 +435,15 @@ fn handle_go_to_tab(args: Value, screen_sender: &SenderWithContext<ScreenInstruc
     let client_id: ClientId = 1;
 
     if let Some(index) = args.get("index").and_then(|i| i.as_u64()) {
-        let tab_index = (index - 1) as u32;
+        // MCP accepts 0-based indices (matching query_tab_names output)
+        // but Screen::go_to_tab expects 1-based, so we add 1
+        // Use checked_add to prevent overflow on extreme values
+        let tab_index = match index.checked_add(1) {
+            Some(idx) if idx <= u32::MAX as u64 => idx as u32,
+            _ => {
+                return json!({"error": format!("Tab index {} is out of valid range (0-{})", index, u32::MAX - 1)});
+            }
+        };
 
         if let Err(e) =
             screen_sender.send(ScreenInstruction::GoToTab(tab_index, Some(client_id), None))

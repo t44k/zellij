@@ -70,8 +70,8 @@ MCP Request → ScreenInstruction::GetPaneScrollback
 #### Tab Operations
 - `new_tab` - Create new tab
 - `close_tab` - Close active tab
-- `go_to_tab` - Switch to tab by index
-- `query_tab_names` - List all tabs with names
+- `go_to_tab` - Switch to tab by 0-based index or name (Note: tab names display as "Tab #1", "Tab #2", etc. but indices are 0-based)
+- `query_tab_names` - List all tabs with names and 0-based indices
 
 #### Session Operations
 - `rename_session` - Change session name
