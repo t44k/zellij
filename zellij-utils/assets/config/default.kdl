@@ -521,6 +521,28 @@ load_plugins {
 //
 // post_command_discovery_hook "echo $RESURRECT_COMMAND | sed <your_regex_here>"
 
+// Model Context Protocol (MCP) Server
+// Enables AI assistants to control Zellij programmatically
+// Requires: zellij built with --features mcp_server_capability
+// (Requires restart)
+//
+// mcp {
+//     // Enable MCP server (creates Unix socket for this session)
+//     // Default: true
+//     enabled true
+//     
+//     // Maximum lines to return in read_pane calls
+//     // Default: 10000
+//     max_lines 10000
+//     
+//     // Timeout for operations (seconds)
+//     // Default: 5
+//     timeout 5
+//     
+//     // Log level: "error", "warn", "info", "debug"
+//     // Default: "warn"
+//     log_level "warn"
+// }
 
 web_client {
     font "monospace"

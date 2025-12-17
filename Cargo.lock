@@ -1084,6 +1084,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
 name = "dirs-sys"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3531,7 +3540,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd1c7ddea665294d484c39fd0c0d2b7e35bbfe10035c5fe1854741a57f6880e1"
 dependencies = [
- "dirs",
+ "dirs 4.0.0",
 ]
 
 [[package]]
@@ -5156,6 +5165,7 @@ dependencies = [
  "thiserror 1.0.61",
  "vte 0.11.0",
  "zellij-client",
+ "zellij-mcp",
  "zellij-server",
  "zellij-utils",
 ]
@@ -5198,6 +5208,20 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "zellij-utils",
+]
+
+[[package]]
+name = "zellij-mcp"
+version = "0.44.0"
+dependencies = [
+ "anyhow",
+ "crossbeam",
+ "dirs 5.0.1",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.61",
  "zellij-utils",
 ]
 
@@ -5248,6 +5272,7 @@ dependencies = [
  "vte 0.11.0",
  "wasmi",
  "wasmi_wasi",
+ "zellij-mcp",
  "zellij-utils",
 ]
 

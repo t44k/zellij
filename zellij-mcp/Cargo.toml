@@ -1,0 +1,17 @@
+[package]
+name = "zellij-mcp"
+version = "0.44.0"
+authors = ["Aram Drevekenin <aram@poor.dev>"]
+edition = "2021"
+description = "Model Context Protocol server for Zellij"
+license = "MIT"
+
+[dependencies]
+zellij-utils = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+crossbeam = "0.8"
+dirs = "5.0"

@@ -1007,3 +1007,46 @@ pub fn get_config_options_from_cli_args(opts: &CliArgs) -> Result<Options, Strin
         .map(|(_, _, config_options, _, _)| config_options)
         .map_err(|e| e.to_string())
 }
+
+#[cfg(feature = "mcp_server_capability")]
+pub(crate) fn start_mcp_client() {
+    use zellij_mcp::run_mcp_client;
+
+    if let Err(e) = run_mcp_client() {
+        eprintln!("MCP client error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+#[cfg(feature = "mcp_server_capability")]
+pub(crate) fn list_mcp_tools() {
+    use zellij_mcp::list_tools_json;
+    println!("{}", list_tools_json());
+}
+
+#[cfg(feature = "mcp_server_capability")]
+pub(crate) fn show_mcp_capabilities() {
+    println!(
+        r#"{{
+  "capabilities": {{
+    "tools": {{
+      "total": 23,
+      "categories": [
+        "discovery",
+        "pane_control",
+        "session_management",
+        "tab_management",
+        "plugin_management",
+        "utility"
+      ]
+    }}
+  }},
+  "server": {{
+    "name": "zellij-mcp",
+    "version": "0.44.0"
+  }},
+  "protocol": "MCP 1.0",
+  "transport": "stdio"
+}}"#
+    );
+}

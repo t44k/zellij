@@ -34,6 +34,9 @@ pub struct Config {
     pub env: EnvironmentVariables,
     pub background_plugins: HashSet<RunPluginOrAlias>,
     pub web_client: WebClientConfig,
+    #[cfg(feature = "mcp_server_capability")]
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 #[derive(Error, Debug)]
@@ -478,6 +481,51 @@ where
 
         while !config_file_path.exists() {
             tokio::time::sleep(Duration::from_secs(3)).await;
+        }
+    }
+}
+
+#[cfg(feature = "mcp_server_capability")]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpConfig {
+    #[serde(default = "default_mcp_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_mcp_max_lines")]
+    pub max_lines: usize,
+    #[serde(default = "default_mcp_timeout")]
+    pub timeout: u64,
+    #[serde(default = "default_mcp_log_level")]
+    pub log_level: String,
+}
+
+#[cfg(feature = "mcp_server_capability")]
+fn default_mcp_enabled() -> bool {
+    true
+}
+
+#[cfg(feature = "mcp_server_capability")]
+fn default_mcp_max_lines() -> usize {
+    10000
+}
+
+#[cfg(feature = "mcp_server_capability")]
+fn default_mcp_timeout() -> u64 {
+    5
+}
+
+#[cfg(feature = "mcp_server_capability")]
+fn default_mcp_log_level() -> String {
+    "warn".to_string()
+}
+
+#[cfg(feature = "mcp_server_capability")]
+impl Default for McpConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_mcp_enabled(),
+            max_lines: default_mcp_max_lines(),
+            timeout: default_mcp_timeout(),
+            log_level: default_mcp_log_level(),
         }
     }
 }

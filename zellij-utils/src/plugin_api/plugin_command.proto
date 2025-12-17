@@ -160,6 +160,7 @@ enum CommandName {
   ClearKeyPressesIntercepts = 144;
   ReplacePaneWithExistingPane = 155;
   GetPaneScrollback = 163;
+  DumpPaneToFile = 174;
   RunAction = 164;
   ShowCursor = 169;
   CopyToClipboard = 170;
@@ -274,6 +275,7 @@ message PluginCommand {
     ReplacePaneWithExistingPanePayload replace_pane_with_existing_pane_payload = 111;
     NewTabPayload new_tab_payload = 112;
     GetPaneScrollbackPayload get_pane_scrollback_payload = 113;
+    DumpPaneToFilePayload dump_pane_to_file_payload = 124;
     RunActionPayload run_action_payload = 114;
     ShowCursorPayload show_cursor_payload = 119;
     CopyToClipboardPayload copy_to_clipboard_payload = 120;
@@ -730,6 +732,12 @@ message RenameWebTokenResponse {
 message GetPaneScrollbackPayload {
   PaneId pane_id = 1;
   bool get_full_scrollback = 2;
+}
+
+message DumpPaneToFilePayload {
+  PaneId pane_id = 1;
+  string file_path = 2;
+  bool include_scrollback = 3;
 }
 
 message ShowCursorPayload {

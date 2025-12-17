@@ -17,6 +17,9 @@ mod terminal_bytes;
 mod thread_bus;
 mod ui;
 
+#[cfg(feature = "mcp_server_capability")]
+mod mcp_server;
+
 pub use daemonize;
 
 use background_jobs::{background_jobs_main, BackgroundJob};
@@ -1872,6 +1875,32 @@ fn init_session(
             }
         })
         .unwrap();
+
+    #[cfg(feature = "mcp_server_capability")]
+    if config.mcp.enabled {
+        use zellij_mcp::types::get_mcp_socket_path;
+        use zellij_utils::envs;
+
+        let session_name = envs::get_session_name().unwrap_or_else(|_| "unknown".to_string());
+
+        match get_mcp_socket_path(&session_name) {
+            Ok(mcp_socket_path) => {
+                log::info!("[MCP] Starting MCP server for session: {}", session_name);
+                if let Err(e) = mcp_server::start_mcp_server(
+                    mcp_socket_path,
+                    to_screen.clone(),
+                    to_pty.clone(),
+                    session_name,
+                ) {
+                    log::error!("[MCP] Failed to start MCP server: {}", e);
+                }
+            },
+            Err(e) => {
+                log::error!("[MCP] Failed to get socket path: {}", e);
+            },
+        }
+    }
+
     if let Some(config_file_path) = cli_assets.config_file_path.clone() {
         report_changes_in_config_file(config_file_path, to_server.clone());
     }

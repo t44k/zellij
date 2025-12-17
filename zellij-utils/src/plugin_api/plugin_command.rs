@@ -8,8 +8,8 @@ pub use super::generated_api::api::{
         ChangeHostFolderPayload, ClearScreenForPaneIdPayload, CliPipeOutputPayload,
         CloseMultiplePanesPayload, CloseTabWithIndexPayload, CommandName, ContextItem,
         CopyToClipboardPayload, CreateTokenResponse as ProtobufCreateTokenResponse,
-        CreateTokenResponse, CursorPosition, EditScrollbackForPaneWithIdPayload,
-        EmbedMultiplePanesPayload, EnvVariable, ExecCmdPayload,
+        CreateTokenResponse, CursorPosition,
+        EditScrollbackForPaneWithIdPayload, EmbedMultiplePanesPayload, EnvVariable, ExecCmdPayload,
         FixedOrPercent as ProtobufFixedOrPercent,
         FixedOrPercentValue as ProtobufFixedOrPercentValue, FloatMultiplePanesPayload,
         FloatingPaneCoordinates as ProtobufFloatingPaneCoordinates, GenerateWebLoginTokenPayload,
@@ -1844,6 +1844,9 @@ impl TryFrom<ProtobufPluginCommand> for PluginCommand {
                     Ok(PluginCommand::CopyToClipboard(payload.text))
                 },
                 _ => Err("Mismatched payload for CopyToClipboard"),
+            },
+            Some(CommandName::DumpPaneToFile) => {
+                Err("DumpPaneToFile is deprecated - use GetPaneScrollback instead")
             },
             None => Err("Unrecognized plugin command"),
         }

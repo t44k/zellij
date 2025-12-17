@@ -376,6 +376,22 @@ fn main() {
             }
         }
     } else {
-        commands::start_client(opts);
+        #[cfg(feature = "mcp_server_capability")]
+        if let Some(Command::Mcp(mcp_opts)) = &opts.command {
+            if mcp_opts.list_tools {
+                commands::list_mcp_tools();
+            } else if mcp_opts.capabilities {
+                commands::show_mcp_capabilities();
+            } else {
+                commands::start_mcp_client();
+            }
+        } else {
+            commands::start_client(opts);
+        }
+
+        #[cfg(not(feature = "mcp_server_capability"))]
+        {
+            commands::start_client(opts);
+        }
     }
 }

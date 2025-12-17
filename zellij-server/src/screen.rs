@@ -200,6 +200,12 @@ pub enum ScreenInstruction {
         get_full_scrollback: bool,
         response_channel: crossbeam::channel::Sender<PaneScrollbackResponse>,
     },
+    GetPaneManifest {
+        response_channel: crossbeam::channel::Sender<PaneManifest>,
+    },
+    GetTabInfo {
+        response_channel: crossbeam::channel::Sender<Vec<(usize, String)>>, // (index, name)
+    },
     ScrollUp(ClientId, Option<NotificationEnd>),
     ScrollUpAt(Position, ClientId, Option<NotificationEnd>),
     ScrollDown(ClientId, Option<NotificationEnd>),
@@ -540,6 +546,8 @@ impl From<&ScreenInstruction> for ScreenContext {
             ScreenInstruction::DumpLayoutToPlugin(..) => ScreenContext::DumpLayoutToPlugin,
             ScreenInstruction::EditScrollback(..) => ScreenContext::EditScrollback,
             ScreenInstruction::GetPaneScrollback { .. } => ScreenContext::GetPaneScrollback,
+            ScreenInstruction::GetPaneManifest { .. } => ScreenContext::GetPaneManifest,
+            ScreenInstruction::GetTabInfo { .. } => ScreenContext::GetTabInfo,
             ScreenInstruction::ScrollUp(..) => ScreenContext::ScrollUp,
             ScreenInstruction::ScrollDown(..) => ScreenContext::ScrollDown,
             ScreenInstruction::ScrollToBottom(..) => ScreenContext::ScrollToBottom,
@@ -4213,6 +4221,25 @@ pub(crate) fn screen_thread_main(
                         pane_id
                     );
                 }
+            },
+            ScreenInstruction::GetPaneManifest { response_channel } => {
+                log::info!("GetPaneManifest called");
+                match screen.generate_and_report_pane_state() {
+                    Ok(pane_manifest) => {
+                        let _ = response_channel.send(pane_manifest);
+                    },
+                    Err(e) => {
+                        log::error!("Failed to generate pane manifest: {:?}", e);
+                    },
+                }
+            },
+            ScreenInstruction::GetTabInfo { response_channel } => {
+                log::info!("GetTabInfo called");
+                let mut tab_info = Vec::new();
+                for (tab_index, tab) in screen.get_tabs().iter() {
+                    tab_info.push((*tab_index, tab.name.clone()));
+                }
+                let _ = response_channel.send(tab_info);
             },
             ScreenInstruction::ScrollUp(
                 client_id,

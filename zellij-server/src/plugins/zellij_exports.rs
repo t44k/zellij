@@ -2393,7 +2393,6 @@ fn get_pane_scrollback(env: &PluginEnv, pane_id: PaneId, get_full_scrollback: bo
         .with_context(err_context)
         .non_fatal();
 }
-
 fn write_to_pane_id(env: &PluginEnv, bytes: Vec<u8>, pane_id: PaneId) {
     let _ = env
         .senders

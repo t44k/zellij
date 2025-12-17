@@ -3698,9 +3698,19 @@ impl Tab {
         pane_id: PaneId,
         full: bool,
     ) -> Result<()> {
+        log::info!(
+            "dump_terminal_screen called for pane {:?}, file: {:?}, full: {}",
+            pane_id,
+            file,
+            full
+        );
         if let Some(pane) = self.get_pane_with_id(pane_id) {
             let dump = pane.dump_screen(full, None);
-            self.os_api.write_to_file(dump, file).non_fatal()
+            log::info!("Got dump of {} bytes, writing to file", dump.len());
+            self.os_api.write_to_file(dump, file).non_fatal();
+            log::info!("write_to_file completed");
+        } else {
+            log::warn!("Pane {:?} not found in tab", pane_id);
         }
         Ok(())
     }

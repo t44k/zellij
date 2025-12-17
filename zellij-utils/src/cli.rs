@@ -111,6 +111,11 @@ pub enum Command {
     #[clap(name = "web", value_parser)]
     Web(WebCli),
 
+    /// Run Model Context Protocol server (requires MCP to be enabled in config)
+    #[cfg(feature = "mcp_server_capability")]
+    #[clap(name = "mcp", value_parser)]
+    Mcp(McpCli),
+
     /// Explore existing zellij sessions
     #[clap(flatten)]
     Sessions(Sessions),
@@ -209,6 +214,18 @@ impl WebCli {
                 || self.revoke_all_tokens
                 || self.list_tokens)
     }
+}
+
+#[cfg(feature = "mcp_server_capability")]
+#[derive(Debug, Clone, Args, Serialize, Deserialize)]
+pub struct McpCli {
+    /// List available MCP tools
+    #[clap(long, value_parser, exclusive(true))]
+    pub list_tools: bool,
+
+    /// Show MCP server capabilities
+    #[clap(long, value_parser, exclusive(true))]
+    pub capabilities: bool,
 }
 
 #[derive(Debug, Subcommand, Clone, Serialize, Deserialize)]
