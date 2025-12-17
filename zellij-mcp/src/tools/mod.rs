@@ -145,13 +145,13 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "Switch to a specific tab by index or name",
             json!({
                 "session": {"type": "string"},
-                "index": {"type": "number", "description": "Tab index (1-based)"},
+                "index": {"type": "number", "description": "Tab index (0-based, matching query_tab_names output). Note: tab names are displayed as 'Tab #1', 'Tab #2', etc. but indices are 0-based."},
                 "name": {"type": "string", "description": "Tab name"}
             }),
         ),
         tool_def(
             "zellij_query_tab_names",
-            "List all tab names in the session",
+            "List all tab names in the session with 0-based indices",
             json!({
                 "session": {"type": "string"}
             }),
