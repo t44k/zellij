@@ -25,6 +25,7 @@ zellij-client = { path = "zellij-client/", version = "0.46.0" }
 zellij-terminal = { path = "zellij-terminal/", version = "0.46.0", optional = true }
 zellij-server = { path = "zellij-server/", version = "0.46.0" }
 zellij-utils = { workspace = true }
+zellij-mcp = { path = "zellij-mcp/", version = "0.44.0", optional = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 dialoguer = { workspace = true }
@@ -68,6 +69,7 @@ members = [
     "zellij-tile",
     "zellij-tile-utils",
     "zellij-terminal",
+    "zellij-mcp",
     "xtask",
     ".",
 ]
@@ -192,13 +194,15 @@ pkg-fmt = "tgz"
 
 [features]
 # See remarks in zellij_utils/Cargo.toml
-default = ["plugins_from_target", "vendored_curl", "web_server_capability", "terminal"]
+default = ["plugins_from_target", "vendored_curl", "web_server_capability", "terminal", "mcp_server_capability"]
 terminal = ["dep:zellij-terminal"]
 plugins_from_target = ["zellij-utils/plugins_from_target"]
 disable_automatic_asset_installation = ["zellij-utils/disable_automatic_asset_installation"]
 vendored_curl = ["zellij-utils/vendored_curl"]
 unstable = ["zellij-client/unstable", "zellij-utils/unstable"]
 web_server_capability = ["zellij-client/web_server_capability", "zellij-server/web_server_capability", "zellij-utils/web_server_capability", "zellij-terminal?/web_server_capability"]
+mcp_server_capability = ["zellij-mcp", "zellij-server/mcp_server_capability", "zellij-utils/mcp_server_capability"]
+
 
 [profile.dev.package.zellij-terminal]
 opt-level = 2

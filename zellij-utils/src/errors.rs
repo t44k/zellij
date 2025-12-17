@@ -270,6 +270,8 @@ pub enum ScreenContext {
     SaveSession,
     EditScrollback,
     GetPaneScrollback,
+    GetPaneManifest,
+    GetTabInfo,
     ScrollUp,
     ScrollUpAt,
     ScrollDown,
