@@ -151,7 +151,7 @@ fn handle_read_pane(args: Value, screen_sender: &SenderWithContext<ScreenInstruc
 
     // Use direct IPC with response channel instead of temporary files
     let (response_tx, response_rx) = crossbeam::channel::bounded(1);
-    
+
     if let Err(e) = screen_sender.send(ScreenInstruction::GetPaneScrollback {
         pane_id,
         client_id: 0, // MCP server doesn't have a specific client ID
@@ -522,10 +522,10 @@ fn handle_launch_plugin(
     args: Value,
     screen_sender: &SenderWithContext<ScreenInstruction>,
 ) -> Value {
+    use zellij_utils::cli::CliArgs;
     use zellij_utils::data::ClientId;
-    use zellij_utils::input::layout::{
-        PluginUserConfiguration, RunPlugin, RunPluginLocation, RunPluginOrAlias,
-    };
+    use zellij_utils::input::config::Config;
+    use zellij_utils::input::layout::RunPluginOrAlias;
 
     let url = match args.get("url").and_then(|u| u.as_str()) {
         Some(u) => u,
@@ -538,19 +538,23 @@ fn handle_launch_plugin(
         .unwrap_or(false);
     let client_id: ClientId = 1;
 
-    let location = match RunPluginLocation::parse(url, None) {
-        Ok(loc) => loc,
-        Err(e) => return json!({"error": format!("Failed to parse plugin URL: {}", e)}),
+    // Load config to get plugin aliases
+    let cli_args = CliArgs::default();
+    let config = match Config::try_from(&cli_args) {
+        Ok(config) => config,
+        Err(e) => {
+            return json!({"error": format!("Failed to load config: {}", e)});
+        },
     };
 
-    let run_plugin = RunPlugin {
-        _allow_exec_host_cmd: false,
-        location,
-        configuration: PluginUserConfiguration::default(),
-        initial_cwd: None,
-    };
-
-    let run_plugin_or_alias = RunPluginOrAlias::RunPlugin(run_plugin);
+    // Use from_url which handles both URLs and aliases
+    let run_plugin_or_alias =
+        match RunPluginOrAlias::from_url(url, &None, Some(&config.plugins), None) {
+            Ok(plugin) => plugin,
+            Err(e) => {
+                return json!({"error": format!("Failed to parse plugin URL or alias: {}", e)})
+            },
+        };
 
     if let Err(e) = screen_sender.send(ScreenInstruction::LaunchPlugin(
         run_plugin_or_alias,
