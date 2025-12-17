@@ -5814,6 +5814,29 @@ pub(crate) fn screen_thread_main(
                         log::error!("Failed to rename ipc socket: {:?}", e);
                     }
 
+                    // rename MCP socket file if MCP is enabled
+                    #[cfg(feature = "mcp_server_capability")]
+                    {
+                        use zellij_mcp::types::get_mcp_socket_path;
+                        if let Ok(old_mcp_socket) = get_mcp_socket_path(&old_session_name) {
+                            if old_mcp_socket.exists() {
+                                if let Ok(new_mcp_socket) = get_mcp_socket_path(&name) {
+                                    if let Err(e) =
+                                        std::fs::rename(&old_mcp_socket, &new_mcp_socket)
+                                    {
+                                        log::error!("Failed to rename MCP socket: {:?}", e);
+                                    } else {
+                                        log::info!(
+                                            "MCP socket renamed from {:?} to {:?}",
+                                            old_mcp_socket,
+                                            new_mcp_socket
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // rename session_info folder (TODO: make this atomic, right now there is a
                     // chance background_jobs will re-create this folder before it knows the
                     // session was renamed)
