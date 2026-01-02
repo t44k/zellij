@@ -120,7 +120,7 @@ fn handle_operation(
         "close_pane" => handle_close_pane(args, screen_sender),
         "new_tab" => handle_new_tab(args, screen_sender),
         "close_tab" => handle_close_tab(screen_sender),
-        "go_to_tab" => handle_go_to_tab(args, screen_sender),
+        
         "query_tab_names" => handle_query_tab_names(screen_sender),
         "rename_session" => handle_rename_session(args, screen_sender),
         "launch_plugin" => handle_launch_plugin(args, screen_sender),
@@ -407,7 +407,7 @@ fn handle_new_tab(args: Value, screen_sender: &SenderWithContext<ScreenInstructi
         (vec![], vec![]),
         None,
         false,
-        true,
+        false, // Don't change focus by default
         (client_id, false),
         None,
     )) {
@@ -429,46 +429,7 @@ fn handle_close_tab(screen_sender: &SenderWithContext<ScreenInstruction>) -> Val
     json!({"success": true, "message": "Tab closed"})
 }
 
-fn handle_go_to_tab(args: Value, screen_sender: &SenderWithContext<ScreenInstruction>) -> Value {
-    use zellij_utils::data::ClientId;
 
-    let client_id: ClientId = 1;
-
-    if let Some(index) = args.get("index").and_then(|i| i.as_u64()) {
-        // MCP accepts 0-based indices (matching query_tab_names output)
-        // but Screen::go_to_tab expects 1-based, so we add 1
-        // Use checked_add to prevent overflow on extreme values
-        let tab_index = match index.checked_add(1) {
-            Some(idx) if idx <= u32::MAX as u64 => idx as u32,
-            _ => {
-                return json!({"error": format!("Tab index {} is out of valid range (0-{})", index, u32::MAX - 1)});
-            }
-        };
-
-        if let Err(e) =
-            screen_sender.send(ScreenInstruction::GoToTab(tab_index, Some(client_id), None))
-        {
-            return json!({"error": format!("Failed to go to tab: {}", e)});
-        }
-
-        json!({"success": true, "message": format!("Switched to tab {}", index)})
-    } else if let Some(name) = args.get("name").and_then(|n| n.as_str()) {
-        if let Err(e) = screen_sender.send(ScreenInstruction::GoToTabName(
-            name.to_string(),
-            (vec![], vec![]),
-            None,
-            false,
-            Some(client_id),
-            None,
-        )) {
-            return json!({"error": format!("Failed to go to tab: {}", e)});
-        }
-
-        json!({"success": true, "message": format!("Switched to tab '{}'", name)})
-    } else {
-        json!({"error": "Must provide either 'index' or 'name' parameter"})
-    }
-}
 
 fn handle_query_tab_names(screen_sender: &SenderWithContext<ScreenInstruction>) -> Value {
     let (response_tx, response_rx) = crossbeam::channel::bounded(1);

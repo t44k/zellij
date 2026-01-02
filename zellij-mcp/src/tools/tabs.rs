@@ -8,13 +8,11 @@ pub fn new_tab(session: &str, args: Value) -> Result<Value> {
     send_to_session_server(session, "new_tab", args)
 }
 
-pub fn close_tab(session: &str) -> Result<Value> {
-    send_to_session_server(session, "close_tab", serde_json::json!({}))
+pub fn close_tab(session: &str, args: Value) -> Result<Value> {
+    send_to_session_server(session, "close_tab", args)
 }
 
-pub fn go_to_tab(session: &str, args: Value) -> Result<Value> {
-    send_to_session_server(session, "go_to_tab", args)
-}
+
 
 pub fn query_tab_names(session: &str) -> Result<Value> {
     send_to_session_server(session, "query_tab_names", serde_json::json!({}))

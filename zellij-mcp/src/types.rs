@@ -58,29 +58,12 @@ pub fn tool_def(name: &str, description: &str, properties: Value) -> Value {
     })
 }
 
-/// Extract session parameter from arguments with smart default
+/// Extract session parameter from arguments (required)
 pub fn get_session_from_args(args: &Value) -> Result<String> {
-    // 1. Check if session explicitly provided
-    if let Some(session) = args.get("session").and_then(|s| s.as_str()) {
-        return Ok(session.to_string());
-    }
-
-    // 2. Fall back to environment variable
-    if let Ok(session) = std::env::var("ZELLIJ_SESSION_NAME") {
-        return Ok(session);
-    }
-
-    // 3. Try to get first available session from the session list
-    use crate::session::list_sessions_with_mcp_status;
-    match list_sessions_with_mcp_status() {
-        Ok(sessions) => {
-            if let Some(first_session) = sessions.first() {
-                return Ok(first_session.name.clone());
-            }
-            anyhow::bail!("No active Zellij sessions found. Please start a session with: zellij")
-        },
-        Err(e) => anyhow::bail!("Failed to get sessions: {}", e),
-    }
+    args.get("session")
+        .and_then(|s| s.as_str())
+        .context("Session parameter is required")
+        .map(|s| s.to_string())
 }
 
 /// Format MCP content response
