@@ -11,17 +11,29 @@ pub fn list_panes(session: &str) -> Result<Value> {
 
 /// Read pane content
 pub fn read_pane(session: &str, args: Value) -> Result<Value> {
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for read_pane to avoid ambiguity between tabs");
+    }
     send_to_session_server(session, "read_pane", args)
 }
 
 /// Write to pane (unfocused)
 pub fn write_to_pane(session: &str, args: Value) -> Result<Value> {
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for write_to_pane to avoid ambiguity between tabs");
+    }
     send_to_session_server(session, "write_to_pane", args)
 }
 
 /// Run command in pane (unfocused)
 pub fn run_command_in_pane(session: &str, args: Value) -> Result<Value> {
-    // This is just write_to_pane with submit=true
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for run_command_in_pane to avoid ambiguity between tabs");
+    }
+    
     let pane_id = args.get("pane_id").context("Missing pane_id")?;
     let command = args
         .get("command")
@@ -39,16 +51,28 @@ pub fn run_command_in_pane(session: &str, args: Value) -> Result<Value> {
 
 /// Focus pane
 pub fn focus_pane(session: &str, args: Value) -> Result<Value> {
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for focus_pane to avoid ambiguity between tabs");
+    }
     send_to_session_server(session, "focus_pane", args)
 }
 
 /// New pane
 pub fn new_pane(session: &str, args: Value) -> Result<Value> {
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for new_pane to avoid ambiguity between tabs");
+    }
     send_to_session_server(session, "new_pane", args)
 }
 
 /// Close pane
 pub fn close_pane(session: &str, args: Value) -> Result<Value> {
+    // Validate tab_index is provided to avoid ambiguity
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for close_pane to avoid ambiguity between tabs");
+    }
     send_to_session_server(session, "close_pane", args)
 }
 

@@ -1,0 +1,17 @@
+
+
+       Zellij 0.44.0
+       What's new?
+       1. Web Client
+       2. Multiple Pane Select
+       3. Key Tooltips for the compact-bar
+       4. Stack Keybinding
+       5. Performance Improvements
+
+       Full Changelog: https://github.com/zellij-org/zellij/releases/tag/v0.44.0
+
+       Please support the Zellij developer <3: https://github.com/sponsors/imsnif
+
+
+
+Help: <↓↑> - Navigate, <ESC> - Dismiss, <?> - Usage Tips

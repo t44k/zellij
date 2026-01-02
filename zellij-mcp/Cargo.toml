@@ -6,6 +6,10 @@ edition = "2021"
 description = "Model Context Protocol server for Zellij"
 license = "MIT"
 
+[[bin]]
+name = "zellij-mcp"
+path = "src/main.rs"
+
 [dependencies]
 zellij-utils = { workspace = true }
 serde = { workspace = true }
@@ -15,3 +19,4 @@ thiserror = { workspace = true }
 log = { workspace = true }
 crossbeam = "0.8"
 dirs = "5.0"
+env_logger = "0.10"

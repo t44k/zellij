@@ -33,9 +33,10 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
         // Pane operations (7)
         tool_def(
             "zellij_list_panes",
-            "List all panes in the session with metadata",
+            "List all panes in session with metadata",
             json!({
-                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
+                "session": {"type": "string", "description": "Session name"},
+                "include_tab_names": {"type": "boolean", "description": "Include tab names in response for better identification (default: false)"}
             }),
         ),
         tool_def(
@@ -43,9 +44,11 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "Read pane content with optional scrollback",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
                 "pane_id": {"type": "string", "description": "Pane ID (e.g., 'terminal_1', 'plugin_2')"},
                 "include_scrollback": {"type": "boolean", "description": "Include scrollback history (default: false)"},
-                "lines": {"type": "number", "description": "Maximum lines to return"}
+                "lines": {"type": "number", "description": "Maximum lines to return"},
+                "offset": {"type": "number", "description": "Line offset to start reading from (default: 0)"}
             }),
         ),
         tool_def(
@@ -53,6 +56,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "Write text to a specific pane without focusing it",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
                 "pane_id": {"type": "string", "description": "Pane ID"},
                 "text": {"type": "string", "description": "Text to write"},
                 "submit": {"type": "boolean", "description": "Submit with Enter key (default: false)"}
@@ -63,6 +67,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "Execute a command in a specific pane without focusing it",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
                 "pane_id": {"type": "string", "description": "Pane ID"},
                 "command": {"type": "string", "description": "Command to execute"}
             }),
@@ -71,7 +76,8 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "zellij_focus_pane",
             "Focus a specific pane",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
                 "pane_id": {"type": "string", "description": "Pane ID"}
             }),
         ),
@@ -79,7 +85,8 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             "zellij_new_pane",
             "Create a new pane",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based) where to create pane. Required to avoid ambiguity."},
                 "direction": {"type": "string", "description": "Split direction: 'right', 'down', 'left', 'up'"},
                 "command": {"type": "string", "description": "Command to run in new pane"},
                 "cwd": {"type": "string", "description": "Working directory"}
@@ -87,10 +94,11 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
         ),
         tool_def(
             "zellij_close_pane",
-            "Close a specific pane or focused pane",
+            "Close a specific pane",
             json!({
-                "session": {"type": "string"},
-                "pane_id": {"type": "string", "description": "Pane ID (omit to close focused pane)"}
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
+                "pane_id": {"type": "string", "description": "Pane ID to close"}
             }),
         ),
         // Session management (4)
@@ -140,15 +148,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
                 "session": {"type": "string"}
             }),
         ),
-        tool_def(
-            "zellij_go_to_tab",
-            "Switch to a specific tab by index or name",
-            json!({
-                "session": {"type": "string"},
-                "index": {"type": "number", "description": "Tab index (0-based, matching query_tab_names output). Note: tab names are displayed as 'Tab #1', 'Tab #2', etc. but indices are 0-based."},
-                "name": {"type": "string", "description": "Tab name"}
-            }),
-        ),
+        
         tool_def(
             "zellij_query_tab_names",
             "List all tab names in the session with 0-based indices",
@@ -256,12 +256,9 @@ pub fn execute_tool(name: &str, args: Value) -> Result<Value> {
         },
         "zellij_close_tab" => {
             let session = get_session_from_args(&args)?;
-            tabs::close_tab(&session)
+            tabs::close_tab(&session, args)
         },
-        "zellij_go_to_tab" => {
-            let session = get_session_from_args(&args)?;
-            tabs::go_to_tab(&session, args)
-        },
+        
         "zellij_query_tab_names" => {
             let session = get_session_from_args(&args)?;
             tabs::query_tab_names(&session)
