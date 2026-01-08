@@ -58,12 +58,15 @@ pub fn tool_def(name: &str, description: &str, properties: Value) -> Value {
     })
 }
 
-/// Extract session parameter from arguments (required)
+/// Extract session parameter from arguments (falls back to $ZELLIJ_SESSION_NAME)
 pub fn get_session_from_args(args: &Value) -> Result<String> {
-    args.get("session")
-        .and_then(|s| s.as_str())
-        .context("Session parameter is required")
-        .map(|s| s.to_string())
+    if let Some(session) = args.get("session").and_then(|s| s.as_str()) {
+        return Ok(session.to_string());
+    }
+
+    // Fall back to environment variable
+    std::env::var("ZELLIJ_SESSION_NAME")
+        .context("Session parameter is required (no $ZELLIJ_SESSION_NAME found)")
 }
 
 /// Format MCP content response
