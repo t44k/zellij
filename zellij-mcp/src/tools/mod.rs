@@ -14,17 +14,17 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
     vec![
         // Discovery tools (3)
         tool_def(
-            "zellij_list_sessions",
+            "list_sessions",
             "List all active Zellij sessions with MCP status",
             json!({}),
         ),
         tool_def(
-            "zellij_get_current_session",
+            "get_current_session",
             "Get the current session from environment ($ZELLIJ_SESSION_NAME)",
             json!({}),
         ),
         tool_def(
-            "zellij_health_check",
+            "health_check",
             "Check MCP server health and configuration",
             json!({
                 "session": {"type": "string", "description": "Optional session to check (defaults to current)"}
@@ -32,15 +32,15 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
         ),
         // Pane operations (7)
         tool_def(
-            "zellij_list_panes",
+            "list_panes",
             "List all panes in session with metadata",
             json!({
-                "session": {"type": "string", "description": "Session name"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "include_tab_names": {"type": "boolean", "description": "Include tab names in response for better identification (default: false)"}
             }),
         ),
         tool_def(
-            "zellij_read_pane",
+            "read_pane",
             "Read pane content with optional scrollback",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
@@ -52,7 +52,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_write_to_pane",
+            "write_to_pane",
             "Write text to a specific pane without focusing it",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
@@ -63,7 +63,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_run_command_in_pane",
+            "run_command_in_pane",
             "Execute a command in a specific pane without focusing it",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
@@ -73,7 +73,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_focus_pane",
+            "focus_pane",
             "Focus a specific pane",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
@@ -82,10 +82,10 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_new_pane",
+            "new_pane",
             "Create a new pane",
             json!({
-                "session": {"type": "string", "description": "Session name (defaults to $ZELELLIJ_SESSION_NAME)"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "tab_index": {"type": "number", "description": "Tab index (0-based) where to create pane. Required to avoid ambiguity."},
                 "direction": {"type": "string", "description": "Split direction: 'right', 'down', 'left', 'up'"},
                 "command": {"type": "string", "description": "Command to run in new pane"},
@@ -93,7 +93,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_close_pane",
+            "close_pane",
             "Close a specific pane",
             json!({
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
@@ -103,14 +103,14 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
         ),
         // Session management (4)
         tool_def(
-            "zellij_attach_session",
+            "attach_session",
             "Get command to attach to a session",
             json!({
                 "session_name": {"type": "string", "description": "Session to attach to"}
             }),
         ),
         tool_def(
-            "zellij_new_session",
+            "new_session",
             "Create a new Zellij session",
             json!({
                 "session_name": {"type": "string", "description": "Name for new session"},
@@ -118,72 +118,72 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_kill_session",
+            "kill_session",
             "Kill a Zellij session",
             json!({
                 "session_name": {"type": "string", "description": "Session to kill"}
             }),
         ),
         tool_def(
-            "zellij_get_session_info",
+            "get_session_info",
             "Get comprehensive session information",
             json!({
-                "session": {"type": "string"}
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
             }),
         ),
         // Tab management (4)
         tool_def(
-            "zellij_new_tab",
+            "new_tab",
             "Create a new tab",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "name": {"type": "string", "description": "Tab name"},
                 "layout": {"type": "string", "description": "Layout for tab"}
             }),
         ),
         tool_def(
-            "zellij_close_tab",
+            "close_tab",
             "Close the current tab",
             json!({
-                "session": {"type": "string"}
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
             }),
         ),
         
         tool_def(
-            "zellij_query_tab_names",
+            "query_tab_names",
             "List all tab names in the session with 0-based indices",
             json!({
-                "session": {"type": "string"}
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
             }),
         ),
         // Plugin & layout (3)
         tool_def(
-            "zellij_launch_plugin",
+            "launch_plugin",
             "Launch a Zellij plugin",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "url": {"type": "string", "description": "Plugin URL or alias"},
                 "floating": {"type": "boolean", "description": "Launch as floating pane"}
             }),
         ),
         tool_def(
-            "zellij_list_aliases",
+            "list_aliases",
             "List available plugin aliases from config",
             json!({
-                "session": {"type": "string"}
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
             }),
         ),
         tool_def(
-            "zellij_dump_layout",
+            "dump_layout",
             "Export current session layout as KDL",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "path": {"type": "string", "description": "Optional file path to save layout"}
             }),
         ),
         // Utility (2)
         tool_def(
-            "zellij_rename_session",
+            "rename_session",
             "Rename a session",
             json!({
                 "session": {"type": "string", "description": "Current session name"},
@@ -191,10 +191,10 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
-            "zellij_dump_screen",
+            "dump_screen",
             "Dump the current screen to a file",
             json!({
-                "session": {"type": "string"},
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
                 "path": {"type": "string", "description": "File path to dump to"},
                 "full": {"type": "boolean", "description": "Include full scrollback"}
             }),
@@ -206,84 +206,84 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
 pub fn execute_tool(name: &str, args: Value) -> Result<Value> {
     match name {
         // Discovery tools
-        "zellij_list_sessions" => discovery::list_sessions(),
-        "zellij_get_current_session" => discovery::get_current_session(),
-        "zellij_health_check" => discovery::health_check(args),
+        "list_sessions" => discovery::list_sessions(),
+        "get_current_session" => discovery::get_current_session(),
+        "health_check" => discovery::health_check(args),
 
         // Pane operations
-        "zellij_list_panes" => {
+        "list_panes" => {
             let session = get_session_from_args(&args)?;
             panes::list_panes(&session)
         },
-        "zellij_read_pane" => {
+        "read_pane" => {
             let session = get_session_from_args(&args)?;
             panes::read_pane(&session, args)
         },
-        "zellij_write_to_pane" => {
+        "write_to_pane" => {
             let session = get_session_from_args(&args)?;
             panes::write_to_pane(&session, args)
         },
-        "zellij_run_command_in_pane" => {
+        "run_command_in_pane" => {
             let session = get_session_from_args(&args)?;
             panes::run_command_in_pane(&session, args)
         },
-        "zellij_focus_pane" => {
+        "focus_pane" => {
             let session = get_session_from_args(&args)?;
             panes::focus_pane(&session, args)
         },
-        "zellij_new_pane" => {
+        "new_pane" => {
             let session = get_session_from_args(&args)?;
             panes::new_pane(&session, args)
         },
-        "zellij_close_pane" => {
+        "close_pane" => {
             let session = get_session_from_args(&args)?;
             panes::close_pane(&session, args)
         },
 
         // Session management
-        "zellij_attach_session" => sessions::attach_session(args),
-        "zellij_new_session" => sessions::new_session(args),
-        "zellij_kill_session" => sessions::kill_session(args),
-        "zellij_get_session_info" => {
+        "attach_session" => sessions::attach_session(args),
+        "new_session" => sessions::new_session(args),
+        "kill_session" => sessions::kill_session(args),
+        "get_session_info" => {
             let session = get_session_from_args(&args)?;
             sessions::get_session_info(&session)
         },
 
         // Tab management
-        "zellij_new_tab" => {
+        "new_tab" => {
             let session = get_session_from_args(&args)?;
             tabs::new_tab(&session, args)
         },
-        "zellij_close_tab" => {
+        "close_tab" => {
             let session = get_session_from_args(&args)?;
             tabs::close_tab(&session, args)
         },
         
-        "zellij_query_tab_names" => {
+        "query_tab_names" => {
             let session = get_session_from_args(&args)?;
             tabs::query_tab_names(&session)
         },
 
         // Plugin & layout
-        "zellij_launch_plugin" => {
+        "launch_plugin" => {
             let session = get_session_from_args(&args)?;
             plugins::launch_plugin(&session, args)
         },
-        "zellij_list_aliases" => {
+        "list_aliases" => {
             let session = get_session_from_args(&args)?;
             plugins::list_aliases(&session)
         },
-        "zellij_dump_layout" => {
+        "dump_layout" => {
             let session = get_session_from_args(&args)?;
             plugins::dump_layout(&session, args)
         },
 
         // Utility
-        "zellij_rename_session" => {
+        "rename_session" => {
             let session = get_session_from_args(&args)?;
             utils::rename_session(&session, args)
         },
-        "zellij_dump_screen" => {
+        "dump_screen" => {
             let session = get_session_from_args(&args)?;
             utils::dump_screen(&session, args)
         },
