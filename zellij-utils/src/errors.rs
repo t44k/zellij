@@ -359,6 +359,7 @@ pub enum ScreenContext {
     ResizePaneWithId,
     EditScrollbackForPaneWithId,
     WriteToPaneId,
+    WriteRawToPaneId,
     CopyTextToClipboard,
     MovePaneWithPaneId,
     MovePaneWithPaneIdInDirection,

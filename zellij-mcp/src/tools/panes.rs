@@ -18,6 +18,20 @@ pub fn read_pane(session: &str, args: Value) -> Result<Value> {
     send_to_session_server(session, "read_pane", args)
 }
 
+/// Send raw key events to a pane without bracketed-paste wrapping
+pub fn send_keys(session: &str, args: Value) -> Result<Value> {
+    if !args.get("tab_index").is_some() {
+        anyhow::bail!("tab_index is required for send_keys to avoid ambiguity between tabs");
+    }
+    if !args.get("pane_id").is_some() {
+        anyhow::bail!("pane_id is required for send_keys");
+    }
+    if !args.get("keys").is_some() {
+        anyhow::bail!("keys array is required for send_keys");
+    }
+    send_to_session_server(session, "send_keys", args)
+}
+
 /// Write to pane (unfocused)
 pub fn write_to_pane(session: &str, args: Value) -> Result<Value> {
     // Validate tab_index is provided to avoid ambiguity

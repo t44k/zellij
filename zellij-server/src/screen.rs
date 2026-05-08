@@ -429,6 +429,8 @@ pub enum ScreenInstruction {
     ResizePaneWithId(ResizeStrategy, PaneId),
     EditScrollbackForPaneWithId(PaneId, Option<NotificationEnd>),
     WriteToPaneId(Vec<u8>, PaneId),
+    /// Like WriteToPaneId but bypasses adjust_input_to_terminal (no bracketed paste wrapping)
+    WriteRawToPaneId(Vec<u8>, PaneId),
     CopyTextToClipboard(String, u32), // String - text to copy, u32 - plugin_id
     MovePaneWithPaneId(PaneId),
     MovePaneWithPaneIdInDirection(PaneId, Direction),
@@ -666,6 +668,7 @@ impl From<&ScreenInstruction> for ScreenContext {
                 ScreenContext::EditScrollbackForPaneWithId
             },
             ScreenInstruction::WriteToPaneId(..) => ScreenContext::WriteToPaneId,
+            ScreenInstruction::WriteRawToPaneId(..) => ScreenContext::WriteRawToPaneId,
             ScreenInstruction::CopyTextToClipboard(..) => ScreenContext::CopyTextToClipboard,
             ScreenInstruction::MovePaneWithPaneId(..) => ScreenContext::MovePaneWithPaneId,
             ScreenInstruction::MovePaneWithPaneIdInDirection(..) => {
@@ -3763,6 +3766,23 @@ pub(crate) fn screen_thread_main(
                         }
                     },
                     ClientTabIndexOrPaneId::TabIndex(tab_index) => {
+                        // Find a client currently viewing this tab so directional splits
+                        // (Tiled(Some(direction))) have an active pane to split relative to.
+                        // If no client is on this tab, directional placement is silently dropped
+                        // to Tiled(None) so the pane still lands on the correct tab.
+                        let client_id_for_tab = screen
+                            .active_tab_indices
+                            .iter()
+                            .find(|(_, &active)| active == tab_index)
+                            .map(|(&cid, _)| cid);
+                        let effective_placement = if client_id_for_tab.is_none() {
+                            match &new_pane_placement {
+                                NewPanePlacement::Tiled(Some(_)) => NewPanePlacement::Tiled(None),
+                                other => other.clone(),
+                            }
+                        } else {
+                            new_pane_placement
+                        };
                         if let Some(active_tab) = screen.tabs.get_mut(&tab_index) {
                             active_tab.new_pane(
                                 pid,
@@ -3770,8 +3790,8 @@ pub(crate) fn screen_thread_main(
                                 invoked_with,
                                 start_suppressed,
                                 true,
-                                new_pane_placement,
-                                None,
+                                effective_placement,
+                                client_id_for_tab,
                                 blocking_notification,
                             )?;
                             if let Some(hold_for_command) = hold_for_command {
@@ -5929,6 +5949,19 @@ pub(crate) fn screen_thread_main(
                 for tab in all_tabs.values_mut() {
                     if tab.has_pane_with_pid(&pane_id) {
                         tab.write_to_pane_id(&None, bytes, false, pane_id, None, None)
+                            .non_fatal();
+                        break;
+                    }
+                }
+                screen.render(None)?;
+            },
+            ScreenInstruction::WriteRawToPaneId(bytes, pane_id) => {
+                // Bypasses adjust_input_to_terminal so no bracketed-paste wrapping occurs.
+                // Used by the MCP send_keys tool to send raw key sequences to TUI apps.
+                let all_tabs = screen.get_tabs_mut();
+                for tab in all_tabs.values_mut() {
+                    if tab.has_pane_with_pid(&pane_id) {
+                        tab.write_to_pane_id_without_preprocessing(bytes, pane_id)
                             .non_fatal();
                         break;
                     }
