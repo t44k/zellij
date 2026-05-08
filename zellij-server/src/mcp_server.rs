@@ -115,6 +115,7 @@ fn handle_operation(
         "read_pane" => handle_read_pane(args, screen_sender),
         "list_panes" => handle_list_panes(args, screen_sender),
         "write_to_pane" => handle_write_to_pane(args, screen_sender),
+        "send_keys" => handle_send_keys(args, screen_sender),
         "focus_pane" => handle_focus_pane(args, screen_sender),
         "new_pane" => handle_new_pane(args, pty_sender),
         "close_pane" => handle_close_pane(args, screen_sender),
@@ -353,14 +354,22 @@ fn handle_new_pane(args: Value, pty_sender: &SenderWithContext<PtyInstruction>) 
         })
     });
 
+    // Use tab_index to target a specific tab (0-based), so panes land on the correct tab
+    // even when it isn't the currently focused one. Falls back to client-based routing
+    // (active tab) when tab_index is not supplied.
     let client_id: ClientId = 1;
+    let client_or_tab = if let Some(tab_index) = args.get("tab_index").and_then(|t| t.as_u64()) {
+        ClientTabIndexOrPaneId::TabIndex(tab_index as usize)
+    } else {
+        ClientTabIndexOrPaneId::ClientId(client_id)
+    };
 
     if let Err(e) = pty_sender.send(PtyInstruction::SpawnTerminal(
         terminal_action,
         None,
         placement,
         false,
-        ClientTabIndexOrPaneId::ClientId(client_id),
+        client_or_tab,
         None,
         false,
     )) {
@@ -559,6 +568,169 @@ fn handle_dump_layout(args: Value, screen_sender: &SenderWithContext<ScreenInstr
     }
 }
 
+fn handle_send_keys(args: Value, screen_sender: &SenderWithContext<ScreenInstruction>) -> Value {
+    // send_keys bypasses bracketed-paste wrapping by using WriteRawToPaneId
+    // (which calls write_to_pane_id_without_preprocessing rather than
+    // adjust_input_to_terminal). This lets us drive TUI apps that interpret
+    // bracketed-paste sequences as paste events rather than key presses.
+
+    let pane_id_str = match args.get("pane_id").and_then(|p| p.as_str()) {
+        Some(id) => id,
+        None => return json!({"error": "Missing pane_id"}),
+    };
+
+    let pane_id = match parse_pane_id(pane_id_str) {
+        Ok(id) => id,
+        Err(e) => return json!({"error": e}),
+    };
+
+    let keys = match args.get("keys").and_then(|k| k.as_array()) {
+        Some(k) => k.clone(),
+        None => return json!({"error": "Missing keys array"}),
+    };
+
+    let inter_key_delay_ms = args
+        .get("inter_key_delay_ms")
+        .and_then(|d| d.as_u64())
+        .unwrap_or(0);
+
+    let mut sent = Vec::new();
+    for key_val in &keys {
+        let key_str = match key_val.as_str() {
+            Some(s) => s,
+            None => return json!({"error": "keys entries must be strings"}),
+        };
+
+        let bytes = match parse_key_string(key_str) {
+            Ok(b) => b,
+            Err(e) => return json!({"error": format!("Invalid key '{}': {}", key_str, e)}),
+        };
+
+        if let Err(e) = screen_sender.send(ScreenInstruction::WriteRawToPaneId(
+            bytes,
+            pane_id,
+        )) {
+            return json!({"error": format!("Failed to send key '{}': {}", key_str, e)});
+        }
+
+        sent.push(key_str);
+
+        if inter_key_delay_ms > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(inter_key_delay_ms));
+        }
+    }
+
+    json!({
+        "success": true,
+        "message": format!("Sent {} key(s) to pane {}", sent.len(), pane_id_str),
+        "keys_sent": sent
+    })
+}
+
+/// Parse a key string into the ANSI/xterm byte sequence it produces.
+///
+/// Supported formats:
+///   Named keys:   enter, return, escape, esc, tab, backspace, space,
+///                 up, down, left, right, home, end, pageup, pagedown, delete,
+///                 f1..f12
+///   Modified:     ctrl+<char>, alt+<char>, shift+<key>, alt+enter, ctrl+enter
+///   Raw hex:      hex:0d  or  hex:1b5b41  (each pair of hex digits = one byte)
+///   Literal text: literal:abc  (UTF-8 sent as-is, without paste markers)
+fn parse_key_string(key: &str) -> Result<Vec<u8>, String> {
+    // hex:XXXXXX — raw byte sequence in hex
+    if let Some(hex_str) = key.strip_prefix("hex:") {
+        if hex_str.len() % 2 != 0 {
+            return Err(format!("hex string '{}' has odd length", hex_str));
+        }
+        let mut bytes = Vec::new();
+        for i in (0..hex_str.len()).step_by(2) {
+            let byte = u8::from_str_radix(&hex_str[i..i + 2], 16)
+                .map_err(|_| format!("invalid hex pair '{}'", &hex_str[i..i + 2]))?;
+            bytes.push(byte);
+        }
+        return Ok(bytes);
+    }
+
+    // literal:TEXT — UTF-8 text sent verbatim
+    if let Some(text) = key.strip_prefix("literal:") {
+        return Ok(text.as_bytes().to_vec());
+    }
+
+    // ctrl+X
+    if let Some(rest) = key.strip_prefix("ctrl+") {
+        match rest {
+            "enter" | "return" => return Ok(vec![0x0d]), // same as plain Enter
+            "space" => return Ok(vec![0x00]),
+            "[" => return Ok(vec![0x1b]),
+            "\\" => return Ok(vec![0x1c]),
+            "]" => return Ok(vec![0x1d]),
+            "^" => return Ok(vec![0x1e]),
+            "_" => return Ok(vec![0x1f]),
+            s if s.len() == 1 => {
+                let c = s.chars().next().unwrap();
+                let b = c as u8;
+                if b.is_ascii_alphabetic() {
+                    return Ok(vec![b.to_ascii_lowercase() - b'a' + 1]);
+                }
+                return Err(format!("ctrl+{} is not a recognized combination", s));
+            },
+            _ => return Err(format!("ctrl+{} is not a recognized combination", rest)),
+        }
+    }
+
+    // alt+X  — ESC prefix
+    if let Some(rest) = key.strip_prefix("alt+") {
+        let inner = parse_key_string(rest)?;
+        let mut bytes = vec![0x1b];
+        bytes.extend(inner);
+        return Ok(bytes);
+    }
+
+    // shift+X  — just send the named key (caller supplies shifted char literally if needed)
+    if let Some(rest) = key.strip_prefix("shift+") {
+        return parse_key_string(rest);
+    }
+
+    // Named keys
+    match key.to_lowercase().as_str() {
+        "enter" | "return" => return Ok(vec![0x0d]),
+        "escape" | "esc" => return Ok(vec![0x1b]),
+        "tab" => return Ok(vec![0x09]),
+        "backspace" => return Ok(vec![0x7f]),
+        "space" => return Ok(vec![0x20]),
+        "up" => return Ok(vec![0x1b, b'[', b'A']),
+        "down" => return Ok(vec![0x1b, b'[', b'B']),
+        "right" => return Ok(vec![0x1b, b'[', b'C']),
+        "left" => return Ok(vec![0x1b, b'[', b'D']),
+        "home" => return Ok(vec![0x1b, b'[', b'H']),
+        "end" => return Ok(vec![0x1b, b'[', b'F']),
+        "pageup" => return Ok(vec![0x1b, b'[', b'5', b'~']),
+        "pagedown" => return Ok(vec![0x1b, b'[', b'6', b'~']),
+        "delete" => return Ok(vec![0x1b, b'[', b'3', b'~']),
+        "f1" => return Ok(vec![0x1b, b'O', b'P']),
+        "f2" => return Ok(vec![0x1b, b'O', b'Q']),
+        "f3" => return Ok(vec![0x1b, b'O', b'R']),
+        "f4" => return Ok(vec![0x1b, b'O', b'S']),
+        "f5" => return Ok(vec![0x1b, b'[', b'1', b'5', b'~']),
+        "f6" => return Ok(vec![0x1b, b'[', b'1', b'7', b'~']),
+        "f7" => return Ok(vec![0x1b, b'[', b'1', b'8', b'~']),
+        "f8" => return Ok(vec![0x1b, b'[', b'1', b'9', b'~']),
+        "f9" => return Ok(vec![0x1b, b'[', b'2', b'0', b'~']),
+        "f10" => return Ok(vec![0x1b, b'[', b'2', b'1', b'~']),
+        "f11" => return Ok(vec![0x1b, b'[', b'2', b'3', b'~']),
+        "f12" => return Ok(vec![0x1b, b'[', b'2', b'4', b'~']),
+        _ => {},
+    }
+
+    // Single printable ASCII character — send as-is (allows alt+a → ESC+'a')
+    let chars: Vec<char> = key.chars().collect();
+    if chars.len() == 1 && chars[0].is_ascii() && !chars[0].is_ascii_control() {
+        return Ok(vec![chars[0] as u8]);
+    }
+
+    Err(format!("Unknown key: '{}'", key))
+}
+
 fn handle_list_aliases() -> Value {
     use zellij_utils::cli::CliArgs;
     use zellij_utils::input::config::Config;
@@ -583,4 +755,73 @@ fn handle_list_aliases() -> Value {
         "success": true,
         "aliases": aliases
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_key_string;
+
+    #[test]
+    fn test_named_keys() {
+        assert_eq!(parse_key_string("enter").unwrap(), vec![0x0d]);
+        assert_eq!(parse_key_string("return").unwrap(), vec![0x0d]);
+        assert_eq!(parse_key_string("escape").unwrap(), vec![0x1b]);
+        assert_eq!(parse_key_string("esc").unwrap(), vec![0x1b]);
+        assert_eq!(parse_key_string("tab").unwrap(), vec![0x09]);
+        assert_eq!(parse_key_string("backspace").unwrap(), vec![0x7f]);
+        assert_eq!(parse_key_string("space").unwrap(), vec![0x20]);
+    }
+
+    #[test]
+    fn test_arrow_keys() {
+        assert_eq!(parse_key_string("up").unwrap(), vec![0x1b, b'[', b'A']);
+        assert_eq!(parse_key_string("down").unwrap(), vec![0x1b, b'[', b'B']);
+        assert_eq!(parse_key_string("right").unwrap(), vec![0x1b, b'[', b'C']);
+        assert_eq!(parse_key_string("left").unwrap(), vec![0x1b, b'[', b'D']);
+    }
+
+    #[test]
+    fn test_function_keys() {
+        assert_eq!(parse_key_string("f1").unwrap(), vec![0x1b, b'O', b'P']);
+        assert_eq!(parse_key_string("f5").unwrap(), vec![0x1b, b'[', b'1', b'5', b'~']);
+        assert_eq!(parse_key_string("f12").unwrap(), vec![0x1b, b'[', b'2', b'4', b'~']);
+    }
+
+    #[test]
+    fn test_ctrl_keys() {
+        assert_eq!(parse_key_string("ctrl+c").unwrap(), vec![0x03]);
+        assert_eq!(parse_key_string("ctrl+a").unwrap(), vec![0x01]);
+        assert_eq!(parse_key_string("ctrl+z").unwrap(), vec![0x1a]);
+        assert_eq!(parse_key_string("ctrl+enter").unwrap(), vec![0x0d]);
+    }
+
+    #[test]
+    fn test_alt_keys() {
+        // alt+enter = ESC + Enter byte (0x0d)
+        assert_eq!(parse_key_string("alt+enter").unwrap(), vec![0x1b, 0x0d]);
+        // alt+a = ESC + 'a' (0x61)
+        assert_eq!(parse_key_string("alt+a").unwrap(), vec![0x1b, 0x61]);
+        // alt+escape = ESC + ESC
+        assert_eq!(parse_key_string("alt+escape").unwrap(), vec![0x1b, 0x1b]);
+    }
+
+    #[test]
+    fn test_hex_keys() {
+        assert_eq!(parse_key_string("hex:0d").unwrap(), vec![0x0d]);
+        assert_eq!(parse_key_string("hex:1b5b41").unwrap(), vec![0x1b, 0x5b, 0x41]);
+    }
+
+    #[test]
+    fn test_literal_keys() {
+        assert_eq!(parse_key_string("literal:hello").unwrap(), b"hello");
+        assert_eq!(parse_key_string("literal:").unwrap(), b"");
+    }
+
+    #[test]
+    fn test_invalid_key() {
+        assert!(parse_key_string("notakey").is_err());
+        assert!(parse_key_string("ctrl+xyz").is_err());
+        assert!(parse_key_string("hex:0").is_err()); // odd length
+        assert!(parse_key_string("hex:zz").is_err()); // invalid hex
+    }
 }

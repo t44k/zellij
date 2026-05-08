@@ -926,6 +926,8 @@ pub enum ScreenInstruction {
         PaneId,
         Option<NotificationEnd>,
     ),
+    /// Like WriteToPaneId but bypasses adjust_input_to_terminal (no bracketed paste wrapping)
+    WriteRawToPaneId(Vec<u8>, PaneId),
     CopyTextToClipboard(String, u32), // String - text to copy, u32 - plugin_id
     MovePaneWithPaneId(PaneId),
     MovePaneWithPaneIdInDirection(PaneId, Direction),
@@ -1549,6 +1551,7 @@ impl From<&ScreenInstruction> for ScreenContext {
             ScreenInstruction::Paste(..) => ScreenContext::Paste,
             ScreenInstruction::SetPaneColor(..) => ScreenContext::SetPaneColor,
             ScreenInstruction::WriteKeyToPaneId(..) => ScreenContext::WriteKeyToPaneId,
+            ScreenInstruction::WriteRawToPaneId(..) => ScreenContext::WriteRawToPaneId,
             ScreenInstruction::CopyTextToClipboard(..) => ScreenContext::CopyTextToClipboard,
             ScreenInstruction::MovePaneWithPaneId(..) => ScreenContext::MovePaneWithPaneId,
             ScreenInstruction::MovePaneWithPaneIdInDirection(..) => {
@@ -15051,6 +15054,19 @@ pub(crate) fn screen_thread_main(
                 if should_update_ui {
                     screen.log_and_report_session_state()?;
                 }
+            },
+            ScreenInstruction::WriteRawToPaneId(bytes, pane_id) => {
+                // Bypasses adjust_input_to_terminal so no bracketed-paste wrapping occurs.
+                // Used by the MCP send_keys tool to send raw key sequences to TUI apps.
+                let all_tabs = screen.get_tabs_mut();
+                for tab in all_tabs.values_mut() {
+                    if tab.has_pane_with_pid(&pane_id) {
+                        tab.write_to_pane_id_without_preprocessing(bytes, pane_id)
+                            .non_fatal();
+                        break;
+                    }
+                }
+                screen.render(None)?;
             },
             ScreenInstruction::CopyTextToClipboard(text, plugin_id) => {
                 let plugin_pane_id = PaneId::Plugin(plugin_id);

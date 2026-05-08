@@ -52,6 +52,21 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
             }),
         ),
         tool_def(
+            "send_keys",
+            "Send raw key events to a pane without bracketed-paste wrapping. Use this to drive TUI apps (press Enter, Escape, arrow keys, etc.) where write_to_pane would be interpreted as a paste event.",
+            json!({
+                "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"},
+                "tab_index": {"type": "number", "description": "Tab index (0-based). Required to avoid ambiguity between tabs."},
+                "pane_id": {"type": "string", "description": "Pane ID (e.g., 'terminal_0')"},
+                "keys": {
+                    "type": "array",
+                    "description": "Key sequences to send. Each entry is one of: named key (enter, return, escape, esc, tab, backspace, space, up, down, left, right, home, end, pageup, pagedown, delete, f1..f12), modified key (ctrl+c, alt+enter, shift+up, etc.), raw hex bytes (hex:0d), or literal text (literal:abc).",
+                    "items": {"type": "string"}
+                },
+                "inter_key_delay_ms": {"type": "number", "description": "Delay in milliseconds between key events (default: 0)"}
+            }),
+        ),
+        tool_def(
             "write_to_pane",
             "Write text to a specific pane without focusing it",
             json!({
@@ -218,6 +233,10 @@ pub fn execute_tool(name: &str, args: Value) -> Result<Value> {
         "read_pane" => {
             let session = get_session_from_args(&args)?;
             panes::read_pane(&session, args)
+        },
+        "send_keys" => {
+            let session = get_session_from_args(&args)?;
+            panes::send_keys(&session, args)
         },
         "write_to_pane" => {
             let session = get_session_from_args(&args)?;
