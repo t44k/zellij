@@ -888,11 +888,28 @@ mod setup_test {
     use insta::assert_snapshot;
     use std::path::PathBuf;
 
+    /// Debug-formats the config for snapshots. The `mcp` section only exists when the
+    /// `mcp_server_capability` feature is enabled, so it is stripped to keep the
+    /// snapshots identical for builds with and without that feature.
+    fn config_snapshot(config: &crate::input::config::Config) -> String {
+        let debug = format!("{:#?}", config);
+        match debug.find("    mcp: McpConfig {") {
+            Some(start) => match debug[start..].find("\n    },\n") {
+                Some(end) => {
+                    let end = start + end + "\n    },\n".len();
+                    format!("{}{}", &debug[..start], &debug[end..])
+                },
+                None => debug,
+            },
+            None => debug,
+        }
+    }
+
     #[test]
     fn default_config_with_no_cli_arguments() {
         let cli_args = CliArgs::default();
         let (config, layout_info, options, _, _) = Setup::from_cli_args(&cli_args).unwrap();
-        assert_snapshot!(format!("{:#?}", config));
+        assert_snapshot!(config_snapshot(&config));
         assert_snapshot!(format!("{:#?}", layout_info));
         assert_snapshot!(format!("{:#?}", options));
     }
@@ -962,7 +979,7 @@ mod setup_test {
             env!("CARGO_MANIFEST_DIR")
         )));
         let (config, _layout_info, _options, _, _) = Setup::from_cli_args(&cli_args).unwrap();
-        assert_snapshot!(format!("{:#?}", config));
+        assert_snapshot!(config_snapshot(&config));
     }
     #[test]
     fn layout_ui_config_overrides_config_ui_config() {
@@ -976,7 +993,7 @@ mod setup_test {
             env!("CARGO_MANIFEST_DIR")
         )));
         let (config, _layout_info, _options, _, _) = Setup::from_cli_args(&cli_args).unwrap();
-        assert_snapshot!(format!("{:#?}", config));
+        assert_snapshot!(config_snapshot(&config));
     }
     #[test]
     fn layout_themes_override_config_themes() {
@@ -990,7 +1007,7 @@ mod setup_test {
             env!("CARGO_MANIFEST_DIR")
         )));
         let (config, _layout_info, _options, _, _) = Setup::from_cli_args(&cli_args).unwrap();
-        assert_snapshot!(format!("{:#?}", config));
+        assert_snapshot!(config_snapshot(&config));
     }
     #[test]
     fn layout_keybinds_override_config_keybinds() {
@@ -1004,7 +1021,7 @@ mod setup_test {
             env!("CARGO_MANIFEST_DIR")
         )));
         let (config, _layout_info, _options, _, _) = Setup::from_cli_args(&cli_args).unwrap();
-        assert_snapshot!(format!("{:#?}", config));
+        assert_snapshot!(config_snapshot(&config));
     }
     #[test]
     fn cli_config_dir_overrides_defaults() {
