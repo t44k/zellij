@@ -58,6 +58,9 @@ pub struct Config {
     pub session_suggestions: SessionSuggestionsConfig,
     #[serde(default)]
     pub attention: AttentionConfig,
+    #[cfg(feature = "mcp_server_capability")]
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 mod shared_mousebinds {
@@ -96,9 +99,6 @@ mod shared_keybinds {
     ) -> Result<Arc<Keybinds>, D::Error> {
         Keybinds::deserialize(deserializer).map(Arc::new)
     }
-    #[cfg(feature = "mcp_server_capability")]
-    #[serde(default)]
-    pub mcp: McpConfig,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize)]

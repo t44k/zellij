@@ -292,7 +292,7 @@ fn handle_write_to_pane(
         bytes.push(b'\n');
     }
 
-    if let Err(e) = screen_sender.send(ScreenInstruction::WriteToPaneId(bytes, pane_id)) {
+    if let Err(e) = screen_sender.send(ScreenInstruction::WriteToPaneId(bytes, pane_id, None)) {
         return json!({"error": format!("Failed to write to pane: {}", e)});
     }
 
@@ -337,9 +337,16 @@ fn handle_new_pane(args: Value, pty_sender: &SenderWithContext<PtyInstruction>) 
             "up" => Direction::Up,
             _ => return json!({"error": format!("Invalid direction: {}", dir_str)}),
         };
-        NewPanePlacement::Tiled(Some(dir))
+        NewPanePlacement::Tiled {
+            direction: Some(dir),
+            borderless: None,
+            border_style: None,
+        }
     } else {
-        NewPanePlacement::NoPreference
+        NewPanePlacement::NoPreference {
+            borderless: None,
+            border_style: None,
+        }
     };
 
     let terminal_action = args.get("command").and_then(|c| c.as_str()).map(|cmd| {
@@ -351,6 +358,7 @@ fn handle_new_pane(args: Value, pty_sender: &SenderWithContext<PtyInstruction>) 
             hold_on_start: false,
             originating_plugin: None,
             use_terminal_title: false,
+            notify: false,
         })
     });
 
@@ -372,6 +380,7 @@ fn handle_new_pane(args: Value, pty_sender: &SenderWithContext<PtyInstruction>) 
         client_or_tab,
         None,
         false,
+        None,
     )) {
         return json!({"error": format!("Failed to spawn terminal: {}", e)});
     }
@@ -413,7 +422,7 @@ fn handle_new_tab(args: Value, screen_sender: &SenderWithContext<ScreenInstructi
         None,
         vec![],
         tab_name,
-        (vec![], vec![]),
+        (None, None),
         None,
         false,
         false, // Don't change focus by default
@@ -443,10 +452,10 @@ fn handle_close_tab(screen_sender: &SenderWithContext<ScreenInstruction>) -> Val
 fn handle_query_tab_names(screen_sender: &SenderWithContext<ScreenInstruction>) -> Value {
     let (response_tx, response_rx) = crossbeam::channel::bounded(1);
 
-    if let Err(e) = screen_sender.send(ScreenInstruction::GetTabInfo {
+    if let Err(e) = screen_sender.send(ScreenInstruction::GetTabNames {
         response_channel: response_tx,
     }) {
-        return json!({"error": format!("Failed to send GetTabInfo instruction: {}", e)});
+        return json!({"error": format!("Failed to send GetTabNames instruction: {}", e)});
     }
 
     match response_rx.recv_timeout(std::time::Duration::from_secs(5)) {
@@ -537,12 +546,15 @@ fn handle_launch_plugin(
     if let Err(e) = screen_sender.send(ScreenInstruction::LaunchPlugin(
         run_plugin_or_alias,
         should_float,
-        false,
-        None,
-        false,
-        None,
+        false, // should_open_in_place
+        false, // close_replaced_pane
+        None,  // pane_id_to_replace
+        false, // skip_cache
+        None,  // cwd
         client_id,
-        None,
+        None,  // completion_tx
+        None,  // explicit_tab_id
+        false, // no_focus
     )) {
         return json!({"error": format!("Failed to launch plugin: {}", e)});
     }

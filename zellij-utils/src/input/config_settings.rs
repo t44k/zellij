@@ -607,6 +607,8 @@ pub fn setting_values(config: &Config) -> BTreeMap<SettingKey, Option<String>> {
         terminal,
         session_suggestions: _session_suggestions_are_read_by_the_server,
         attention,
+        #[cfg(feature = "mcp_server_capability")]
+            mcp: _mcp_is_read_once_at_server_start,
     } = config;
     let mut values = BTreeMap::new();
     option_values(options, &mut values);

@@ -477,7 +477,7 @@ pub enum ScreenInstruction {
     GetPaneManifest {
         response_channel: crossbeam::channel::Sender<PaneManifest>,
     },
-    GetTabInfo {
+    GetTabNames {
         response_channel: crossbeam::channel::Sender<Vec<(usize, String)>>, // (index, name)
     },
     ScrollUp(ClientId, Option<NotificationEnd>),
@@ -1343,7 +1343,7 @@ impl From<&ScreenInstruction> for ScreenContext {
             ScreenInstruction::EditScrollback(..) => ScreenContext::EditScrollback,
             ScreenInstruction::GetPaneScrollback { .. } => ScreenContext::GetPaneScrollback,
             ScreenInstruction::GetPaneManifest { .. } => ScreenContext::GetPaneManifest,
-            ScreenInstruction::GetTabInfo { .. } => ScreenContext::GetTabInfo,
+            ScreenInstruction::GetTabNames { .. } => ScreenContext::GetTabNames,
             ScreenInstruction::ScrollUp(..) => ScreenContext::ScrollUp,
             ScreenInstruction::ScrollDown(..) => ScreenContext::ScrollDown,
             ScreenInstruction::ScrollToBottom(..) => ScreenContext::ScrollToBottom,
@@ -12264,8 +12264,8 @@ pub(crate) fn screen_thread_main(
                     },
                 }
             },
-            ScreenInstruction::GetTabInfo { response_channel } => {
-                log::info!("GetTabInfo called");
+            ScreenInstruction::GetTabNames { response_channel } => {
+                log::info!("GetTabNames called");
                 let mut tab_info = Vec::new();
                 for (tab_index, tab) in screen.get_tabs().iter() {
                     tab_info.push((*tab_index, tab.name.clone()));
