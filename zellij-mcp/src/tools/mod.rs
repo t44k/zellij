@@ -163,7 +163,7 @@ pub fn get_all_tool_definitions() -> Vec<Value> {
                 "session": {"type": "string", "description": "Session name (defaults to $ZELLIJ_SESSION_NAME)"}
             }),
         ),
-        
+
         tool_def(
             "query_tab_names",
             "List all tab names in the session with 0-based indices",
