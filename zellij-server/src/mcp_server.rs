@@ -121,7 +121,7 @@ fn handle_operation(
         "close_pane" => handle_close_pane(args, screen_sender),
         "new_tab" => handle_new_tab(args, screen_sender),
         "close_tab" => handle_close_tab(screen_sender),
-        
+
         "query_tab_names" => handle_query_tab_names(screen_sender),
         "rename_session" => handle_rename_session(args, screen_sender),
         "launch_plugin" => handle_launch_plugin(args, screen_sender),
@@ -447,8 +447,6 @@ fn handle_close_tab(screen_sender: &SenderWithContext<ScreenInstruction>) -> Val
     json!({"success": true, "message": "Tab closed"})
 }
 
-
-
 fn handle_query_tab_names(screen_sender: &SenderWithContext<ScreenInstruction>) -> Value {
     let (response_tx, response_rx) = crossbeam::channel::bounded(1);
 
@@ -618,10 +616,7 @@ fn handle_send_keys(args: Value, screen_sender: &SenderWithContext<ScreenInstruc
             Err(e) => return json!({"error": format!("Invalid key '{}': {}", key_str, e)}),
         };
 
-        if let Err(e) = screen_sender.send(ScreenInstruction::WriteRawToPaneId(
-            bytes,
-            pane_id,
-        )) {
+        if let Err(e) = screen_sender.send(ScreenInstruction::WriteRawToPaneId(bytes, pane_id)) {
             return json!({"error": format!("Failed to send key '{}': {}", key_str, e)});
         }
 
@@ -795,8 +790,14 @@ mod tests {
     #[test]
     fn test_function_keys() {
         assert_eq!(parse_key_string("f1").unwrap(), vec![0x1b, b'O', b'P']);
-        assert_eq!(parse_key_string("f5").unwrap(), vec![0x1b, b'[', b'1', b'5', b'~']);
-        assert_eq!(parse_key_string("f12").unwrap(), vec![0x1b, b'[', b'2', b'4', b'~']);
+        assert_eq!(
+            parse_key_string("f5").unwrap(),
+            vec![0x1b, b'[', b'1', b'5', b'~']
+        );
+        assert_eq!(
+            parse_key_string("f12").unwrap(),
+            vec![0x1b, b'[', b'2', b'4', b'~']
+        );
     }
 
     #[test]
@@ -820,7 +821,10 @@ mod tests {
     #[test]
     fn test_hex_keys() {
         assert_eq!(parse_key_string("hex:0d").unwrap(), vec![0x0d]);
-        assert_eq!(parse_key_string("hex:1b5b41").unwrap(), vec![0x1b, 0x5b, 0x41]);
+        assert_eq!(
+            parse_key_string("hex:1b5b41").unwrap(),
+            vec![0x1b, 0x5b, 0x41]
+        );
     }
 
     #[test]

@@ -277,7 +277,7 @@ pub fn execute_tool(name: &str, args: Value) -> Result<Value> {
             let session = get_session_from_args(&args)?;
             tabs::close_tab(&session, args)
         },
-        
+
         "query_tab_names" => {
             let session = get_session_from_args(&args)?;
             tabs::query_tab_names(&session)

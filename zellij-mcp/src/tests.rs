@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::tools::{get_all_tool_definitions, execute_tool};
+    use crate::tools::{execute_tool, get_all_tool_definitions};
     use serde_json::json;
 
     #[test]
@@ -14,20 +14,30 @@ mod tests {
         let test_cases = vec![
             ("list_panes", json!({})),
             ("read_pane", json!({"pane_id": "terminal_1"})),
-            ("write_to_pane", json!({"pane_id": "terminal_1", "text": "test"})),
+            (
+                "write_to_pane",
+                json!({"pane_id": "terminal_1", "text": "test"}),
+            ),
             ("new_tab", json!({})),
             ("close_tab", json!({})),
         ];
 
         for (tool_name, args) in test_cases {
             let result = execute_tool(tool_name, args);
-            assert!(result.is_err(),
-                    "Tool {} should fail without session parameter and env var", tool_name);
+            assert!(
+                result.is_err(),
+                "Tool {} should fail without session parameter and env var",
+                tool_name
+            );
 
             let error_msg = result.unwrap_err().to_string();
-            assert!(error_msg.contains("Session parameter is required") ||
-                    error_msg.contains("ZELLIJ_SESSION_NAME"),
-                    "Tool {} should mention session requirement or env var. Error: {}", tool_name, error_msg);
+            assert!(
+                error_msg.contains("Session parameter is required")
+                    || error_msg.contains("ZELLIJ_SESSION_NAME"),
+                "Tool {} should mention session requirement or env var. Error: {}",
+                tool_name,
+                error_msg
+            );
         }
     }
 
@@ -36,9 +46,11 @@ mod tests {
         // Test that get_current_session tool exists and works
         let result = execute_tool("get_current_session", json!({}));
         // It should succeed (either returns current session or "not in session")
-        assert!(result.is_ok(),
-                "get_current_session should work without session parameter. Error: {:?}",
-                result.err());
+        assert!(
+            result.is_ok(),
+            "get_current_session should work without session parameter. Error: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -55,9 +67,13 @@ mod tests {
             // These might fail due to non-existent sessions, but should not fail due to missing session
             if let Err(e) = result {
                 let error_msg = e.to_string();
-                assert!(!error_msg.contains("Session parameter is required") &&
-                        !error_msg.contains("Missing session"),
-                        "Tool {} should accept explicit session. Error: {}", tool_name, error_msg);
+                assert!(
+                    !error_msg.contains("Session parameter is required")
+                        && !error_msg.contains("Missing session"),
+                    "Tool {} should accept explicit session. Error: {}",
+                    tool_name,
+                    error_msg
+                );
             }
         }
     }
@@ -70,8 +86,11 @@ mod tests {
         // This might fail for various reasons, but not due to missing session parameter
         if let Err(e) = result {
             let error_msg = e.to_string();
-            assert!(!error_msg.contains("Session parameter is required"),
-                    "close_tab should not fail for session when provided. Error: {}", error_msg);
+            assert!(
+                !error_msg.contains("Session parameter is required"),
+                "close_tab should not fail for session when provided. Error: {}",
+                error_msg
+            );
         }
     }
 
@@ -83,8 +102,11 @@ mod tests {
         for tool in tools {
             if let Some(name) = tool.get("name").and_then(|n| n.as_str()) {
                 let description = tool.get("description").and_then(|d| d.as_str());
-                assert!(description.is_some() && !description.unwrap().is_empty(),
-                        "Tool {} should have a non-empty description", name);
+                assert!(
+                    description.is_some() && !description.unwrap().is_empty(),
+                    "Tool {} should have a non-empty description",
+                    name
+                );
             }
         }
     }
@@ -116,15 +138,23 @@ mod tests {
         for tool in tools {
             if let Some(name) = tool.get("name").and_then(|n| n.as_str()) {
                 if tools_with_session_fallback.contains(&name) {
-                    if let Some(properties) = tool.get("inputSchema").and_then(|s| s.get("properties")) {
+                    if let Some(properties) =
+                        tool.get("inputSchema").and_then(|s| s.get("properties"))
+                    {
                         let session_prop = properties.get("session");
-                        assert!(session_prop.is_some(),
-                                "Tool {} should have a session parameter", name);
+                        assert!(
+                            session_prop.is_some(),
+                            "Tool {} should have a session parameter",
+                            name
+                        );
 
                         if let Some(session) = session_prop {
                             let description = session.get("description").and_then(|d| d.as_str());
-                            assert!(description.is_some(),
-                                    "Tool {} session parameter should have a description", name);
+                            assert!(
+                                description.is_some(),
+                                "Tool {} session parameter should have a description",
+                                name
+                            );
 
                             let desc = description.unwrap();
                             assert!(desc.contains("$ZELLIJ_SESSION_NAME"),

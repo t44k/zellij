@@ -45,9 +45,11 @@ pub fn write_to_pane(session: &str, args: Value) -> Result<Value> {
 pub fn run_command_in_pane(session: &str, args: Value) -> Result<Value> {
     // Validate tab_index is provided to avoid ambiguity
     if !args.get("tab_index").is_some() {
-        anyhow::bail!("tab_index is required for run_command_in_pane to avoid ambiguity between tabs");
+        anyhow::bail!(
+            "tab_index is required for run_command_in_pane to avoid ambiguity between tabs"
+        );
     }
-    
+
     let pane_id = args.get("pane_id").context("Missing pane_id")?;
     let command = args
         .get("command")
@@ -296,7 +298,7 @@ fn execute_via_cli(session: &str, operation: &str, args: Value) -> Result<Value>
             // The socket-based server (in zellij-server/src/mcp_server.rs) uses direct IPC
             // without temporary files. This fallback must use temp files because the CLI
             // `dump-screen` action is the only way to get pane content via external commands.
-            
+
             // Extract parameters
             let pane_number = args
                 .get("pane_id")
